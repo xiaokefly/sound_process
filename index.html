@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音频剪切器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #F5F5F5;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .file-section {
+            text-align: center;
+        }
+
+        .file-input-wrapper {
+            display: inline-block;
+            position: relative;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 12px 32px;
+            background: #4A90E2;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s;
+        }
+
+        .file-label:hover {
+            background: #357ABD;
+        }
+
+        .file-name {
+            margin-top: 12px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .playback-section {
+            text-align: center;
+        }
+
+        .playback-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .play-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #4A90E2;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .play-btn:hover {
+            background: #357ABD;
+            transform: scale(1.05);
+        }
+
+        .play-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .time-display {
+            font-size: 18px;
+            color: #333;
+            font-weight: 500;
+            min-width: 180px;
+        }
+
+        .waveform-container {
+            position: relative;
+            background: #f8f8f8;
+            border-radius: 8px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+
+        #waveform {
+            display: block;
+            width: 100%;
+            height: 150px;
+        }
+
+        .selection-overlay {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            background: rgba(74, 144, 226, 0.3);
+            border-left: 2px solid #4A90E2;
+            border-right: 2px solid #4A90E2;
+            pointer-events: none;
+        }
+
+        .playhead {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: #E74C3C;
+            pointer-events: none;
+            display: none;
+        }
+
+        .time-info {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .time-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .time-group label {
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .time-input {
+            width: 100px;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .time-input:focus {
+            border-color: #4A90E2;
+        }
+
+        .time-unit {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .quick-btn {
+            padding: 8px 16px;
+            border: 1px solid #4A90E2;
+            background: transparent;
+            color: #4A90E2;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .quick-btn:disabled {
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .quick-btn:disabled:hover {
+            background: transparent;
+            color: #ccc;
+        }
+
+        .format-select {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .format-select:focus {
+            outline: none;
+            border-color: #4A90E2;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 28px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background: #67CB73;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5ab862;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #357ABD;
+        }
+
+        .btn-secondary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #4A90E2;
+            color: #4A90E2;
+        }
+
+        .btn-outline:hover {
+            background: #4A90E2;
+            color: white;
+        }
+
+        .btn-outline:disabled {
+            border-color: #ccc;
+            color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .export-section {
+            text-align: center;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+        }
+
+        .message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .message.show {
+            opacity: 1;
+        }
+
+        .message.success {
+            background: #67CB73;
+        }
+
+        .message.error {
+            background: #E74C3C;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .preview-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #audioPreview {
+            width: 100%;
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+
+        #audioPlayer {
+            width: 100%;
+            margin-top: 12px;
+            border-radius: 8px;
+        }
+
+        .section-title {
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .supported-formats {
+            margin-top: 12px;
+            font-size: 12px;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 音频剪切器</h1>
+
+        <div class="card">
+            <div class="file-section">
+                <div class="file-input-wrapper">
+                    <input type="file" id="audioFile" class="file-input" accept="audio/*">
+                    <label for="audioFile" class="file-label">选择音频文件</label>
+                </div>
+                <div id="fileName" class="file-name"></div>
+                <div class="supported-formats">支持格式：MP3, WAV, OGG, AAC, M4A, FLAC, WMA, APE</div>
+            </div>
+        </div>
+
+        <div class="card" id="playbackCard" style="display: none;">
+            <div class="section-title">原音频播放</div>
+            <div class="playback-section">
+                <audio id="audioPlayer" style="display: none;"></audio>
+                <div class="playback-controls">
+                    <button class="play-btn" id="playBtn" disabled>▶</button>
+                    <div class="time-display">
+                        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="waveformCard" style="display: none;">
+            <div class="waveform-container" id="waveformContainer">
+                <canvas id="waveform"></canvas>
+                <div class="selection-overlay" id="selectionOverlay"></div>
+                <div class="playhead" id="playhead"></div>
+            </div>
+            <div class="time-info">
+                <span>总时长: <span id="totalDuration">0:00</span></span>
+                <span>选中区间: <span id="selectedDuration">0:00</span></span>
+            </div>
+        </div>
+
+        <div class="card" id="controlsCard" style="display: none;">
+            <div class="controls">
+                <div class="time-group">
+                    <label>起始时间</label>
+                    <input type="number" id="startTime" class="time-input" min="0" step="0.1" value="0">
+                    <span class="time-unit">秒</span>
+                    <button class="quick-btn" id="setStartBtn">设为当前</button>
+                </div>
+                <div class="time-group">
+                    <label>结束时间</label>
+                    <input type="number" id="endTime" class="time-input" min="0" step="0.1" value="0">
+                    <span class="time-unit">秒</span>
+                    <button class="quick-btn" id="setEndBtn">设为当前</button>
+                </div>
+            </div>
+            <div class="buttons">
+                <button class="btn btn-primary" id="cutBtn">截取音频</button>
+                <button class="btn btn-outline" id="resetBtn">重置选择</button>
+            </div>
+        </div>
+
+        <div class="card" id="previewCard" style="display: none;">
+            <div class="section-title">预览截取结果</div>
+            <audio id="audioPreview" controls></audio>
+        </div>
+
+        <div class="card" id="exportCard" style="display: none;">
+            <div class="export-section">
+                <div class="section-title">导出音频</div>
+                <div class="export-buttons">
+                    <select id="formatSelect" class="format-select">
+                        <option value="wav">WAV</option>
+                        <option value="mp3">MP3</option>
+                        <option value="ogg" disabled>OGG (暂不支持)</option>
+                        <option value="aac" disabled>AAC (暂不支持)</option>
+                        <option value="m4a" disabled>M4A (暂不支持)</option>
+                        <option value="flac" disabled>FLAC (暂不支持)</option>
+                        <option value="wma" disabled>WMA (暂不支持)</option>
+                        <option value="ape" disabled>APE (暂不支持)</option>
+                    </select>
+                    <button class="btn btn-secondary" id="exportBtn">导出</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+    <script>
+        let audioContext;
+        let audioBuffer;
+        let originalFileName = '';
+        let originalFormat = '';
+        let cutBuffer = null;
+        let waveformData = [];
+        let audioElement;
+        let isPlaying = false;
+
+        const audioFileInput = document.getElementById('audioFile');
+        const fileName = document.getElementById('fileName');
+        const playbackCard = document.getElementById('playbackCard');
+        const waveformCard = document.getElementById('waveformCard');
+        const controlsCard = document.getElementById('controlsCard');
+        const previewCard = document.getElementById('previewCard');
+        const exportCard = document.getElementById('exportCard');
+        const canvas = document.getElementById('waveform');
+        const ctx = canvas.getContext('2d');
+        const selectionOverlay = document.getElementById('selectionOverlay');
+        const playhead = document.getElementById('playhead');
+        const startTimeInput = document.getElementById('startTime');
+        const endTimeInput = document.getElementById('endTime');
+        const totalDurationEl = document.getElementById('totalDuration');
+        const selectedDurationEl = document.getElementById('selectedDuration');
+        const playBtn = document.getElementById('playBtn');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const setStartBtn = document.getElementById('setStartBtn');
+        const setEndBtn = document.getElementById('setEndBtn');
+        const cutBtn = document.getElementById('cutBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const audioPreview = document.getElementById('audioPreview');
+        const formatSelect = document.getElementById('formatSelect');
+        const exportBtn = document.getElementById('exportBtn');
+
+        function showMessage(text, type = 'success') {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            msg.className = `message ${type} show`;
+            setTimeout(() => {
+                msg.className = 'message';
+            }, 3000);
+        }
+
+        function formatTime(seconds) {
+            if (isNaN(seconds) || seconds < 0) seconds = 0;
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+        }
+
+        async function loadAudioFile(file) {
+            initAudioContext();
+            originalFileName = file.name.replace(/\.[^/.]+$/, '');
+            
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const supportedFormats = ['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac', 'wma', 'ape'];
+            originalFormat = supportedFormats.includes(fileExt) ? fileExt : 'wav';
+            
+            fileName.textContent = file.name;
+
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.src = '';
+                audioElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+                audioElement.removeEventListener('error', handleAudioError);
+                audioElement.removeEventListener('ended', handleAudioEnded);
+                audioElement.removeEventListener('timeupdate', handleTimeUpdate);
+            }
+            audioElement = new Audio();
+            audioElement.src = URL.createObjectURL(file);
+
+            audioElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+            audioElement.addEventListener('error', handleAudioError);
+            audioElement.addEventListener('ended', handleAudioEnded);
+            audioElement.addEventListener('timeupdate', handleTimeUpdate);
+        }
+
+        function handleLoadedMetadata() {
+            audioBuffer = null;
+            waveformCard.style.display = 'none';
+            controlsCard.style.display = 'none';
+            exportCard.style.display = 'none';
+            previewCard.style.display = 'none';
+            playBtn.disabled = false;
+            playhead.style.display = 'none';
+
+            durationEl.textContent = formatTime(audioElement.duration);
+            currentTimeEl.textContent = '0:00';
+
+            playbackCard.style.display = 'block';
+            showMessage('音频加载成功，请播放并设置截取区间');
+        }
+
+        function handleAudioError() {
+            showMessage('音频文件格式不支持', 'error');
+        }
+
+        function handleAudioEnded() {
+            isPlaying = false;
+            playBtn.textContent = '▶';
+        }
+
+        function handleTimeUpdate() {
+            currentTimeEl.textContent = formatTime(audioElement.currentTime);
+            updatePlayhead();
+        }
+
+        async function loadAudioBuffer(file) {
+            initAudioContext();
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    audioBuffer = await audioContext.decodeAudioData(e.target.result);
+
+                    startTimeInput.max = audioBuffer.duration;
+                    endTimeInput.max = audioBuffer.duration;
+                    endTimeInput.value = audioBuffer.duration;
+
+                    totalDurationEl.textContent = formatTime(audioBuffer.duration);
+
+                    drawWaveform();
+                    updateSelectionOverlay();
+                    updateSelectedDuration();
+
+                    waveformCard.style.display = 'block';
+                    controlsCard.style.display = 'block';
+                    exportCard.style.display = 'block';
+                    
+                    const selectableFormats = ['wav', 'mp3'];
+                    const defaultFormat = selectableFormats.includes(originalFormat) ? originalFormat : 'wav';
+                    formatSelect.value = defaultFormat;
+
+                    showMessage('音频波形已生成');
+                } catch (err) {
+                    showMessage('音频文件格式不支持', 'error');
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function getWaveformData(buffer) {
+            const rawData = buffer.getChannelData(0);
+            const samples = 800;
+            const blockSize = Math.floor(rawData.length / samples);
+            waveformData = [];
+
+            for (let i = 0; i < samples; i++) {
+                let sum = 0;
+                for (let j = 0; j < blockSize; j++) {
+                    sum += Math.abs(rawData[i * blockSize + j]);
+                }
+                waveformData.push(sum / blockSize);
+            }
+
+            const maxVal = Math.max(...waveformData);
+            waveformData = waveformData.map(v => v / maxVal);
+        }
+
+        function drawWaveform() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+
+            getWaveformData(audioBuffer);
+
+            ctx.fillStyle = '#f8f8f8';
+            ctx.fillRect(0, 0, rect.width, rect.height);
+
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= 10; i++) {
+                const y = (i / 10) * rect.height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(rect.width, y);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = '#4A90E2';
+            const barWidth = rect.width / waveformData.length;
+
+            for (let i = 0; i < waveformData.length; i++) {
+                const barHeight = waveformData[i] * rect.height * 0.8;
+                const x = i * barWidth;
+                const y = (rect.height - barHeight) / 2;
+                ctx.fillRect(x, y, barWidth - 1, barHeight);
+            }
+        }
+
+        function updateSelectionOverlay() {
+            if (!audioBuffer) return;
+            const container = document.getElementById('waveformContainer');
+            const rect = container.getBoundingClientRect();
+            const start = parseFloat(startTimeInput.value) || 0;
+            const end = parseFloat(endTimeInput.value) || audioBuffer.duration;
+
+            const left = (start / audioBuffer.duration) * rect.width;
+            const width = ((end - start) / audioBuffer.duration) * rect.width;
+
+            selectionOverlay.style.left = left + 'px';
+            selectionOverlay.style.width = width + 'px';
+        }
+
+        function updatePlayhead() {
+            if (!audioBuffer || !audioElement) return;
+            if (playhead.style.display !== 'block') return;
+            
+            const container = document.getElementById('waveformContainer');
+            if (!container) return;
+            
+            const rect = container.getBoundingClientRect();
+            const left = (audioElement.currentTime / audioBuffer.duration) * rect.width;
+            playhead.style.left = left + 'px';
+        }
+
+        function updateSelectedDuration() {
+            if (!audioBuffer) return;
+            const start = parseFloat(startTimeInput.value) || 0;
+            const end = parseFloat(endTimeInput.value) || audioBuffer.duration;
+            const duration = Math.max(0, end - start);
+            selectedDurationEl.textContent = formatTime(duration);
+        }
+
+        playBtn.addEventListener('click', async () => {
+            if (!audioElement) return;
+
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+                playBtn.textContent = '▶';
+            } else {
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+
+                if (!audioBuffer) {
+                    const file = audioFileInput.files[0];
+                    if (file) {
+                        await loadAudioBuffer(file);
+                    }
+                }
+
+                audioElement.play();
+                isPlaying = true;
+                playBtn.textContent = '⏸';
+
+                if (audioBuffer && playhead.style.display !== 'block') {
+                    playhead.style.display = 'block';
+                }
+            }
+        });
+
+        setStartBtn.addEventListener('click', () => {
+            if (!audioElement || !audioBuffer) return;
+            const currentTime = audioElement.currentTime;
+            const end = parseFloat(endTimeInput.value) || audioBuffer.duration;
+
+            if (currentTime < end) {
+                startTimeInput.value = currentTime.toFixed(2);
+                updateSelectionOverlay();
+                updateSelectedDuration();
+                showMessage(`起始时间已设为 ${formatTime(currentTime)}`);
+            } else {
+                showMessage('起始时间必须小于结束时间', 'error');
+            }
+        });
+
+        setEndBtn.addEventListener('click', () => {
+            if (!audioElement || !audioBuffer) return;
+            const currentTime = audioElement.currentTime;
+            const start = parseFloat(startTimeInput.value) || 0;
+
+            if (currentTime > start) {
+                endTimeInput.value = currentTime.toFixed(2);
+                updateSelectionOverlay();
+                updateSelectedDuration();
+                showMessage(`结束时间已设为 ${formatTime(currentTime)}`);
+            } else {
+                showMessage('结束时间必须大于起始时间', 'error');
+            }
+        });
+
+        startTimeInput.addEventListener('input', () => {
+            if (!audioBuffer) return;
+            let start = parseFloat(startTimeInput.value) || 0;
+            let end = parseFloat(endTimeInput.value) || audioBuffer.duration;
+
+            if (start < 0) start = 0;
+            if (start > audioBuffer.duration) start = audioBuffer.duration;
+            if (start > end) start = end;
+
+            startTimeInput.value = start;
+            updateSelectionOverlay();
+            updateSelectedDuration();
+        });
+
+        endTimeInput.addEventListener('input', () => {
+            if (!audioBuffer) return;
+            let start = parseFloat(startTimeInput.value) || 0;
+            let end = parseFloat(endTimeInput.value) || audioBuffer.duration;
+
+            if (end < 0) end = 0;
+            if (end > audioBuffer.duration) end = audioBuffer.duration;
+            if (end < start) end = start;
+
+            endTimeInput.value = end;
+            updateSelectionOverlay();
+            updateSelectedDuration();
+        });
+
+        audioFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                isPlaying = false;
+                playBtn.textContent = '▶';
+                loadAudioFile(file);
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (!audioBuffer) return;
+            startTimeInput.value = 0;
+            endTimeInput.value = audioBuffer.duration;
+            updateSelectionOverlay();
+            updateSelectedDuration();
+            previewCard.style.display = 'none';
+            cutBuffer = null;
+            showMessage('已重置选择');
+        });
+
+        cutBtn.addEventListener('click', async () => {
+            if (!audioBuffer) {
+                showMessage('请先加载并播放音频以生成波形', 'error');
+                return;
+            }
+
+            const start = parseFloat(startTimeInput.value) || 0;
+            const end = parseFloat(endTimeInput.value) || audioBuffer.duration;
+
+            if (start >= end) {
+                showMessage('起始时间必须小于结束时间', 'error');
+                return;
+            }
+
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+                playBtn.textContent = '▶';
+            }
+
+            const startSample = Math.floor(start * audioBuffer.sampleRate);
+            const endSample = Math.floor(end * audioBuffer.sampleRate);
+            const length = endSample - startSample;
+
+            cutBuffer = audioContext.createBuffer(
+                audioBuffer.numberOfChannels,
+                length,
+                audioBuffer.sampleRate
+            );
+
+            for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+                const channelData = audioBuffer.getChannelData(channel);
+                const cutData = cutBuffer.getChannelData(channel);
+                for (let i = 0; i < length; i++) {
+                    cutData[i] = channelData[startSample + i];
+                }
+            }
+
+            const wavBlob = audioBufferToWav(cutBuffer);
+            const url = URL.createObjectURL(wavBlob);
+            audioPreview.src = url;
+            previewCard.style.display = 'block';
+
+            showMessage('音频截取成功，可预览和导出');
+        });
+
+        function audioBufferToWav(buffer) {
+            const numChannels = buffer.numberOfChannels;
+            const sampleRate = buffer.sampleRate;
+            const format = 1;
+            const bitDepth = 16;
+
+            const bytesPerSample = bitDepth / 8;
+            const blockAlign = numChannels * bytesPerSample;
+
+            const dataLength = buffer.length * blockAlign;
+            const bufferLength = 44 + dataLength;
+
+            const arrayBuffer = new ArrayBuffer(bufferLength);
+            const view = new DataView(arrayBuffer);
+
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * blockAlign, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataLength, true);
+
+            let offset = 44;
+            for (let i = 0; i < buffer.length; i++) {
+                for (let channel = 0; channel < numChannels; channel++) {
+                    const sample = buffer.getChannelData(channel)[i];
+                    const clamped = Math.max(-1, Math.min(1, sample));
+                    const int16 = clamped < 0 ? clamped * 0x8000 : clamped * 0x7FFF;
+                    view.setInt16(offset, int16, true);
+                    offset += 2;
+                }
+            }
+
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        exportBtn.addEventListener('click', () => {
+            if (!cutBuffer) {
+                showMessage('请先截取音频', 'error');
+                return;
+            }
+
+            const format = formatSelect.value;
+            const filename = `${originalFileName}_cut.${format}`;
+            
+            if (format === 'wav') {
+                const wavBlob = audioBufferToWav(cutBuffer);
+                downloadBlob(wavBlob, filename);
+                showMessage('WAV导出成功');
+            } else if (format === 'mp3') {
+                exportToMp3(cutBuffer, filename);
+            } else {
+                showMessage(`暂不支持导出 ${format.toUpperCase()} 格式，请选择 WAV 或 MP3`, 'error');
+            }
+        });
+
+        function exportToMp3(buffer, filename) {
+            const mp3encoder = new lamejs.Mp3Encoder(buffer.numberOfChannels, buffer.sampleRate, 128);
+            const mp3Data = [];
+
+            const left = convertFloat32ToInt16(buffer.getChannelData(0));
+            let right;
+            if (buffer.numberOfChannels > 1) {
+                right = convertFloat32ToInt16(buffer.getChannelData(1));
+            } else {
+                right = left;
+            }
+
+            const mp3buf = mp3encoder.encodeBuffer(left, right);
+            if (mp3buf.length > 0) {
+                mp3Data.push(mp3buf);
+            }
+
+            const mp3end = mp3encoder.flush();
+            if (mp3end.length > 0) {
+                mp3Data.push(mp3end);
+            }
+
+            const mp3Blob = new Blob(mp3Data, { type: 'audio/mp3' });
+            downloadBlob(mp3Blob, filename);
+            showMessage('MP3导出成功');
+        }
+
+        function convertFloat32ToInt16(float32Array) {
+            const int16Array = new Int16Array(float32Array.length);
+            for (let i = 0; i < float32Array.length; i++) {
+                const s = Math.max(-1, Math.min(1, float32Array[i]));
+                int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            return int16Array;
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        let isDragging = false;
+        let dragType = null;
+        let containerRect;
+
+        const waveformContainer = document.getElementById('waveformContainer');
+
+        waveformContainer.addEventListener('mousedown', (e) => {
+            if (!audioBuffer) return;
+
+            containerRect = waveformContainer.getBoundingClientRect();
+            const clickX = e.clientX - containerRect.left;
+            const clickTime = (clickX / containerRect.width) * audioBuffer.duration;
+
+            const start = parseFloat(startTimeInput.value);
+            const end = parseFloat(endTimeInput.value);
+            const startX = (start / audioBuffer.duration) * containerRect.width;
+            const endX = (end / audioBuffer.duration) * containerRect.width;
+
+            if (Math.abs(clickX - startX) < 10) {
+                dragType = 'start';
+            } else if (Math.abs(clickX - endX) < 10) {
+                dragType = 'end';
+            } else if (clickX > startX && clickX < endX) {
+                dragType = 'move';
+            } else {
+                return;
+            }
+
+            isDragging = true;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isDragging || !audioBuffer || !dragType) return;
+
+            const mouseX = e.clientX - containerRect.left;
+            const mouseTime = Math.max(0, Math.min(audioBuffer.duration, (mouseX / containerRect.width) * audioBuffer.duration));
+
+            const start = parseFloat(startTimeInput.value);
+            const end = parseFloat(endTimeInput.value);
+
+            if (dragType === 'start') {
+                startTimeInput.value = Math.min(mouseTime, end - 0.1);
+            } else if (dragType === 'end') {
+                endTimeInput.value = Math.max(mouseTime, start + 0.1);
+            } else if (dragType === 'move') {
+                const duration = end - start;
+                let newStart = mouseTime - duration / 2;
+                newStart = Math.max(0, Math.min(audioBuffer.duration - duration, newStart));
+                const newEnd = newStart + duration;
+
+                startTimeInput.value = newStart;
+                endTimeInput.value = newEnd;
+            }
+
+            updateSelectionOverlay();
+            updateSelectedDuration();
+        });
+
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            dragType = null;
+        });
+
+        window.addEventListener('resize', () => {
+            if (audioBuffer) {
+                drawWaveform();
+                updateSelectionOverlay();
+                updatePlayhead();
+            }
+        });
+    </script>
+</body>
+</html>
